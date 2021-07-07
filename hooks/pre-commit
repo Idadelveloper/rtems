@@ -3,8 +3,6 @@
 import configparser
 import os
 import re
-import subprocess
-import sys
 from git import Repo
 
 
@@ -26,6 +24,14 @@ def getModes():
     return mode, verbose
 
 
+def colorText(string, col, style=1):
+    return f"\n \033[{style};{col};{col}m {string} \033[0;0m"
+
+
+import subprocess
+import sys
+
+
 def getDiff():
     cmd = "git diff -U0 --no-color --staged  HEAD --$dir_list | clang-format-diff -p1 -style=file"
 
@@ -34,16 +40,17 @@ def getDiff():
     return diff
 
 
-def handleErrors(modes):
-    mode = modes[0]
-    verbose = modes[1]
-    print("\033[3;34;34m Checking for style differences...\033[0;0m")
+output = getDiff()
 
-    output = getDiff().split("\n")
+def handleErrors(mode, verbose):
+
+    print(colorText("Checking for style differences...", 34, style=3))
+
+    out = output.split('\n')
     files = []
     num_diff = 0
-    for line in output:
-        if verbose == "verbose":
+    for line in out:
+        if verbose is not None and verbose.lower() == "verbose":
             if line.startswith("+"):
                 num_diff += 1
                 print("\033[1;34;34m" + line + "\033[0;0m")
@@ -55,25 +62,26 @@ def handleErrors(modes):
             file = str(re.sub('[+]', '', line))
             file = file.replace("(after formatting)", "").strip()
             files.append(file)
-            output.remove(line)
-    print(" \n \033[1;33;33m Files affected: \033[0;0m")
+            out.remove(line)
+    print(colorText("Files affected:", 33))
     for file in files:
         print(file)
 
-    message = "You have about a total of " + str(num_diff) + " style issue(s) in the " + \
+    message = "StyleWarning: You have about a total of " + str(num_diff) + " style issue(s) in the " + \
         str(len(files)) + " file(s) listed above"
-    print("\n \033[1;31;33m" + "StyleWarning: " + message + "\033[0;0m")
+    print(colorText(message, 31))
 
-    if mode == "nonstrict":
+    if mode is not None and mode.lower() == "nonstrict":
         print("\033[1;31;31m Your style issues were ignored \033[0;0m")
         sys.exit(0)
-    print("\033[1;31;31m ERROR: Commit aborted due to code format inconsistencies" \
-         " with RTEMS \033[0;0m")
+    print(colorText("ERROR: Commit aborted due to code format inconsistencies with RTEMS", 31))
 
 
-rv = len(getDiff())
+rv = len(output)
 if rv == 0:
-  print("\033[1;34;34m Everything is clean - style matches RTEMS \033[0;0m")
+  print(colorText("Everything is clean - style matches RTEMS", 34))
 else:
-  handleErrors(getModes())
+    modes = getModes()
+    handleErrors(modes[0], modes[1])
 sys.exit(rv)
+
