@@ -33,7 +33,8 @@ import sys
 
 
 def getDiff():
-    cmd = "git diff -U0 --no-color --staged  HEAD --$dir_list | clang-format-diff -p1 -style=file"
+    cmd = "git diff -U0 --no-color --staged  HEAD --$dir_list | grep -Ev \
+        '/bsps/|/testsuites/|/cpukit/mghttpd|/cpukit/zlib' | clang-format-diff -p1 -style=file "
 
     # Execute the format command
     diff = subprocess.getoutput(cmd)
@@ -41,7 +42,6 @@ def getDiff():
 
 
 output = getDiff()
-
 def handleErrors(mode, verbose):
 
     print(colorText("Checking for style differences...", 34, style=3))
@@ -72,9 +72,10 @@ def handleErrors(mode, verbose):
     print(colorText(message, 31))
 
     if mode is not None and mode.lower() == "nonstrict":
-        print("\033[1;31;31m Your style issues were ignored \033[0;0m")
+        print(colorText("Your style issues were ignored", 31))
         sys.exit(0)
-    print(colorText("ERROR: Commit aborted due to code format inconsistencies with RTEMS", 31))
+    print(colorText("ERROR: Commit aborted due to code format inconsistencies" \
+         " with RTEMS", 31))
 
 
 rv = len(output)
@@ -84,4 +85,5 @@ else:
     modes = getModes()
     handleErrors(modes[0], modes[1])
 sys.exit(rv)
+
 
