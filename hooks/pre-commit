@@ -28,22 +28,25 @@ def colorText(string, col, style=1):
     return f"\n \033[{style};{col};{col}m {string} \033[0;0m"
 
 
+def ignoreDirs():
+    return '/bsps/|/testsuites/|/cpukit/mghttpd|/cpukit/zlib'
+
+
 import subprocess
 import sys
 
 
 def getDiff():
-    cmd = "git diff -U0 --no-color --staged  HEAD --$dir_list | grep -Ev \
-        '/bsps/|/testsuites/|/cpukit/mghttpd|/cpukit/zlib' | clang-format-diff -p1 -style=file "
+    cmd = "git diff -U0 --no-color --staged  HEAD --$dir_list"
+    cmd = cmd + f" | grep -Ev '{ignoreDirs()}'"
+    cmd = cmd + " | clang-format-diff -p1 -style=file"
 
     # Execute the format command
     diff = subprocess.getoutput(cmd)
     return diff
 
 
-output = getDiff()
 def handleErrors(mode, verbose):
-
     print(colorText("Checking for style differences...", 34, style=3))
 
     out = output.split('\n')
@@ -67,8 +70,8 @@ def handleErrors(mode, verbose):
     for file in files:
         print(file)
 
-    message = "StyleWarning: You have about a total of " + str(num_diff) + " style issue(s) in the " + \
-        str(len(files)) + " file(s) listed above"
+    message = "StyleWarning: You have about a total of " + str(num_diff) + \
+        " style issue(s) in the " + str(len(files)) + " file(s) listed above"
     print(colorText(message, 31))
 
     if mode is not None and mode.lower() == "nonstrict":
@@ -78,6 +81,7 @@ def handleErrors(mode, verbose):
          " with RTEMS", 31))
 
 
+output = getDiff()
 rv = len(output)
 if rv == 0:
   print(colorText("Everything is clean - style matches RTEMS", 34))
